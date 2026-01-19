@@ -1,0 +1,2986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard profesional de gestión de proyectos con análisis en tiempo real">
+  <title>Panel de Gestión de Proyectos</title>
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/isBetween.js"></script>
+  
+  <style>
+    /* ============================================
+       VARIABLES Y FUENTES
+       ============================================ */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    :root {
+      --color-primary: #1e40af;
+      --color-primary-light: #3b82f6;
+      --color-primary-dark: #1e3a8a;
+      --color-secondary: #10b981;
+      --color-accent: #f59e0b;
+      --color-danger: #ef4444;
+      --color-warning: #f59e0b;
+      
+      --color-bg-base: #f8fafc;
+      --color-bg-elevated: #ffffff;
+      --color-bg-subtle: #f1f5f9;
+      
+      --color-text-primary: #0f172a;
+      --color-text-secondary: #475569;
+      --color-text-tertiary: #94a3b8;
+      
+      --color-border: #e2e8f0;
+      --color-border-strong: #cbd5e1;
+      
+      /* Estados específicos */
+      --color-status-completed: #a7f3d0;
+      --color-status-inprogress: #bfdbfe;
+      --color-status-notstarted: #e0e7ff;
+      --color-status-delayed: #fecaca;
+      
+      --color-priority-high: #fca5a5;
+      --color-priority-medium: #fde68a;
+      --color-priority-low: #d9f99d;
+      
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+      
+      --radius-sm: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.5rem;
+      
+      --font-body: 'Outfit', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    
+    /* ============================================
+       RESET Y BASE
+       ============================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-base);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* ============================================
+       HEADER
+       ============================================ */
+    .header {
+      background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+      color: white;
+      padding: 2rem 0;
+      box-shadow: var(--shadow-lg);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+    
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .header-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    
+    .header-subtitle {
+      font-size: 0.875rem;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+    
+    /* ============================================
+       CONTAINER Y LAYOUT
+       ============================================ */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .section {
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+    }
+    
+    .section:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--color-border);
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .section-title-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--color-primary-light);
+      color: white;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.125rem;
+    }
+    
+    /* ============================================
+       UPLOAD AREA
+       ============================================ */
+    .upload-area {
+      border: 2px dashed var(--color-border-strong);
+      border-radius: var(--radius-lg);
+      padding: 3rem;
+      text-align: center;
+      background: var(--color-bg-subtle);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .upload-area:hover {
+      border-color: var(--color-primary);
+      background: white;
+      transform: translateY(-2px);
+    }
+    
+    .upload-area.dragover {
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+    }
+    
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1rem;
+      background: var(--color-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    
+    .upload-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .upload-subtitle {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--color-primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-secondary {
+      background: var(--color-bg-subtle);
+      color: var(--color-text-primary);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--color-border);
+    }
+    
+    /* ============================================
+       DASHBOARD GRID
+       ============================================ */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .kpi-card {
+      background: linear-gradient(135deg, var(--color-bg-elevated) 0%, var(--color-bg-subtle) 100%);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s ease;
+      border: 1px solid var(--color-border);
+    }
+    
+    .kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .kpi-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .kpi-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    
+    .kpi-subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .kpi-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      margin-top: 0.5rem;
+    }
+    
+    .kpi-trend.positive {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .kpi-trend.negative {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    /* ============================================
+       CHARTS
+       ============================================ */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .chart-container {
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    
+    .chart-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+    
+    .chart-canvas {
+      max-width: 100%;
+      max-height: 300px;
+    }
+    
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+    
+    /* ============================================
+       GANTT CHART
+       ============================================ */
+    .gantt-container {
+      overflow-x: auto;
+      overflow-y: visible;
+      margin-top: 1rem;
+      /* Scrollbar styling */
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border-strong) var(--color-bg-subtle);
+    }
+    
+    .gantt-container::-webkit-scrollbar {
+      height: 10px;
+    }
+    
+    .gantt-container::-webkit-scrollbar-track {
+      background: var(--color-bg-subtle);
+      border-radius: var(--radius-sm);
+    }
+    
+    .gantt-container::-webkit-scrollbar-thumb {
+      background: var(--color-border-strong);
+      border-radius: var(--radius-sm);
+    }
+    
+    .gantt-container::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+    
+    .gantt-wrapper {
+      min-width: max-content;
+      position: relative;
+    }
+    
+    .gantt-header {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--color-bg-elevated);
+      padding-bottom: 0.5rem;
+    }
+    
+    .gantt-info {
+      flex: 0 0 300px;
+      font-weight: 600;
+      padding: 0.75rem;
+      background: var(--color-bg-subtle);
+      border-radius: var(--radius-sm);
+      margin-right: 1rem;
+      position: sticky;
+      left: 0;
+      z-index: 11;
+    }
+    
+    .gantt-timeline {
+      display: flex;
+      position: relative;
+      gap: 0;
+    }
+    
+    .gantt-month {
+      flex: 0 0 120px; /* Ancho fijo de 120px por mes */
+      min-width: 120px;
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      background: var(--color-bg-subtle);
+      border-right: 1px solid var(--color-border);
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    
+    .gantt-month:first-child {
+      border-left: 1px solid var(--color-border);
+      border-top-left-radius: var(--radius-sm);
+      border-bottom-left-radius: var(--radius-sm);
+    }
+    
+    .gantt-month:last-child {
+      border-top-right-radius: var(--radius-sm);
+      border-bottom-right-radius: var(--radius-sm);
+    }
+    
+    .gantt-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .gantt-row {
+      display: flex;
+      gap: 0;
+      align-items: center;
+      transition: all 0.2s ease;
+      min-height: 50px;
+    }
+    
+    .gantt-row:hover {
+      background: var(--color-bg-subtle);
+      border-radius: var(--radius-sm);
+    }
+    
+    .gantt-task-name {
+      flex: 0 0 300px;
+      font-size: 0.875rem;
+      padding: 0.75rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 1rem;
+      position: sticky;
+      left: 0;
+      background: var(--color-bg-elevated);
+      z-index: 5;
+    }
+    
+    .gantt-row:hover .gantt-task-name {
+      background: var(--color-bg-subtle);
+    }
+    
+    .gantt-bars {
+      position: relative;
+      height: 40px;
+      border-left: 1px solid var(--color-border);
+      border-right: 1px solid var(--color-border);
+      flex: 1;
+    }
+    
+    .gantt-bar {
+      position: absolute;
+      height: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      white-space: nowrap;
+    }
+    
+    .gantt-bar:hover {
+      opacity: 0.9;
+      transform: translateY(-50%) scale(1.02);
+      box-shadow: var(--shadow-md);
+      z-index: 10;
+    }
+    
+    /* Indicador de scroll */
+    .gantt-scroll-indicator {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: linear-gradient(to left, var(--color-bg-elevated), transparent);
+      width: 60px;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 1rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .gantt-container:not(.scrolled-end) .gantt-scroll-indicator {
+      opacity: 1;
+    }
+    
+    .gantt-scroll-hint {
+      background: var(--color-primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.75rem;
+      box-shadow: var(--shadow-md);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.8;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+    
+    /* ============================================
+       TABLE
+       ============================================ */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    .data-table thead {
+      background: var(--color-bg-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .data-table th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      border-bottom: 2px solid var(--color-border-strong);
+    }
+    
+    .data-table td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .data-table tbody tr {
+      transition: background 0.2s ease;
+    }
+    
+    .data-table tbody tr:hover {
+      background: var(--color-bg-subtle);
+    }
+    
+    .status-badge, .priority-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-completed {
+      background: var(--color-status-completed);
+      color: #064e3b;
+    }
+    
+    .status-inprogress {
+      background: var(--color-status-inprogress);
+      color: #1e3a8a;
+    }
+    
+    .status-notstarted {
+      background: var(--color-status-notstarted);
+      color: #3730a3;
+    }
+    
+    .status-delayed {
+      background: var(--color-status-delayed);
+      color: #991b1b;
+    }
+    
+    .priority-high {
+      background: var(--color-priority-high);
+      color: #7f1d1d;
+    }
+    
+    .priority-medium {
+      background: var(--color-priority-medium);
+      color: #78350f;
+    }
+    
+    .priority-low {
+      background: var(--color-priority-low);
+      color: #365314;
+    }
+    
+    /* ============================================
+       TABS SYSTEM
+       ============================================ */
+    .tabs-container {
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .tabs-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--color-border);
+    }
+    
+    .tabs-header::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    .tabs-header::-webkit-scrollbar-thumb {
+      background: var(--color-border-strong);
+      border-radius: 3px;
+    }
+    
+    .tab-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      background: var(--color-bg-subtle);
+      color: var(--color-text-secondary);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      position: relative;
+    }
+    
+    .tab-button:hover {
+      background: var(--color-border);
+      color: var(--color-text-primary);
+    }
+    
+    .tab-button.active {
+      background: var(--color-primary);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid var(--color-primary);
+    }
+    
+    .tab-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      margin-left: 0.5rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      font-size: 0.75rem;
+      transition: all 0.2s ease;
+    }
+    
+    .tab-button.active .tab-close {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .tab-close:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: scale(1.1);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .tabs-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+    
+    .btn-add-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 2px dashed var(--color-primary);
+      background: transparent;
+      color: var(--color-primary);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-add-file:hover {
+      background: var(--color-primary);
+      color: white;
+      border-style: solid;
+    }
+    
+    /* ============================================
+       UTILITIES
+       ============================================ */
+    .hidden {
+      display: none !important;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .mt-2 {
+      margin-top: 2rem;
+    }
+    
+    /* ============================================
+       PROGRESS BAR
+       ============================================ */
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--color-border);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary-light), var(--color-secondary));
+      border-radius: 9999px;
+      transition: width 0.5s ease;
+    }
+    
+    /* ============================================
+       LOADING
+       ============================================ */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+    }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* ============================================
+       ALERT
+       ============================================ */
+    .alert {
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .alert-info {
+      background: #dbeafe;
+      color: #1e3a8a;
+      border: 1px solid #93c5fd;
+    }
+    
+    .alert-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    
+    .alert-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .section {
+        padding: 1rem;
+      }
+      
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .gantt-task-name {
+        flex: 0 0 200px;
+      }
+      
+      .data-table {
+        font-size: 0.75rem;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <div class="header-icon">📊</div>
+        <div>
+          <h1>Panel de Gestión de Proyectos</h1>
+          <p class="header-subtitle">Análisis y seguimiento en tiempo real</p>
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="window.location.reload()">
+        🔄 Reiniciar
+      </button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- UPLOAD SECTION -->
+    <section class="section" id="uploadSection">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="section-title-icon">📁</span>
+          Cargar Archivo de Proyecto
+        </h2>
+      </div>
+      
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">⬆️</div>
+        <h3 class="upload-title">Arrastra tus archivos Excel aquí</h3>
+        <p class="upload-subtitle">o haz clic para seleccionar archivos (.xls, .xlsx) - Puedes seleccionar múltiples archivos</p>
+        <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx" multiple onchange="handleFileUpload(event)">
+      </div>
+      
+      <!-- Input oculto para añadir más archivos desde las pestañas -->
+      <input type="file" id="additionalFileInput" class="file-input" accept=".xls,.xlsx" multiple onchange="handleAdditionalFiles(event)">
+      
+      <div id="alertContainer"></div>
+      
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <button class="btn btn-primary" onclick="loadDemoData()">
+          ✨ Cargar Datos de Demostración
+        </button>
+      </div>
+    </section>
+
+    <!-- TABS SYSTEM -->
+    <div id="tabsSystem" class="tabs-container hidden">
+      <div class="tabs-header" id="tabsHeader">
+        <!-- Tabs will be inserted here dynamically -->
+        <div class="tabs-actions">
+          <button class="btn-add-file" onclick="document.getElementById('additionalFileInput').click()" title="Añadir más archivos">
+            ➕ Añadir archivos
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD CONTENT (Initially Hidden) -->
+    <div id="dashboardContent" class="hidden">
+      <!-- Las pestañas con contenido se insertarán aquí dinámicamente -->
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // GLOBAL STATE
+    // ============================================
+    let projects = []; // Array para almacenar múltiples proyectos
+    let activeProjectId = null; // ID del proyecto activo
+    let projectCounter = 0; // Contador para IDs únicos
+    
+    // Initialize dayjs plugins
+    dayjs.extend(window.dayjs_plugin_customParseFormat);
+    dayjs.extend(window.dayjs_plugin_isBetween);
+
+    // ============================================
+    // FILE UPLOAD HANDLING
+    // ============================================
+    const uploadArea = document.getElementById('uploadArea');
+    
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        processMultipleFiles(files);
+      }
+    });
+    
+    function handleFileUpload(event) {
+      const files = Array.from(event.target.files);
+      if (files.length > 0) {
+        processMultipleFiles(files);
+      }
+    }
+    
+    function handleAdditionalFiles(event) {
+      const files = Array.from(event.target.files);
+      if (files.length > 0) {
+        processMultipleFiles(files);
+      }
+      // Reset input para permitir cargar el mismo archivo nuevamente
+      event.target.value = '';
+    }
+    
+    // ============================================
+    // FILE PROCESSING
+    // ============================================
+    async function processMultipleFiles(files) {
+      showAlert(`Procesando ${files.length} archivo(s)...`, 'info');
+      
+      for (const file of files) {
+        await processFile(file);
+      }
+      
+      showAlert(`¡${files.length} archivo(s) cargado(s) exitosamente!`, 'success');
+    }
+    
+    async function processFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { raw: false });
+            
+            const projectData = parseProjectData(jsonData, file.name);
+            addProject(projectData);
+            resolve();
+          } catch (error) {
+            showAlert(`Error al procesar ${file.name}. Verifica el formato.`, 'error');
+            console.error(error);
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+    
+    // ============================================
+    // DATA PARSING
+    // ============================================
+    function parseProjectData(data, fileName) {
+      const tasks = [];
+      let projectName = 'Proyecto Sin Nombre';
+      let client = 'Cliente';
+      
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        
+        // Skip empty rows or header rows
+        if (!row.Nombre || row.Nombre === 'Nombre' || !row['Fecha de inicio']) {
+          continue;
+        }
+        
+        // Extract project name from first row
+        if (i === 0 && row.Nombre) {
+          projectName = row.Nombre;
+        }
+        
+        const startDate = parseExcelDate(row['Fecha de inicio']);
+        const endDate = parseExcelDate(row['Fecha de fin']);
+        const duration = parseInt(row['Duración']) || 0;
+        const progress = parseInt(row['Progreso']) || 0;
+        
+        if (startDate && endDate) {
+          tasks.push({
+            id: row['Id.'] || `task-${i}`,
+            name: row.Nombre,
+            startDate: startDate,
+            endDate: endDate,
+            duration: duration,
+            progress: progress,
+            priority: determinePriority(row['Prioridad']),
+            assignedTo: row['Recursos'] || row['Coordinador'] || 'No asignado',
+            notes: row['Notas'] || ''
+          });
+        }
+      }
+      
+      const filteredTasks = tasks.filter(t => t.name && !t.name.includes('Id.'));
+      
+      // Extract client name from filename or use default
+      if (fileName) {
+        const nameWithoutExt = fileName.replace(/\.(xlsx?|xls)$/i, '');
+        const parts = nameWithoutExt.split('_');
+        if (parts.length > 0) {
+          client = parts[0];
+        }
+      }
+      
+      return {
+        id: ++projectCounter,
+        fileName: fileName || 'Archivo',
+        tasks: filteredTasks,
+        client: client,
+        projectName: filteredTasks.length > 0 ? filteredTasks[0].name : projectName,
+        startDate: filteredTasks.length > 0 ? filteredTasks[0].startDate : null,
+        endDate: filteredTasks.length > 0 ? filteredTasks[0].endDate : null,
+        charts: {
+          status: null,
+          priority: null,
+          budget: null,
+          pending: null
+        }
+      };
+    }
+    
+    function parseExcelDate(dateStr) {
+      if (!dateStr) return null;
+      
+      // Try parsing as Excel serial number
+      if (!isNaN(dateStr)) {
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + dateStr * 86400000);
+        return date;
+      }
+      
+      // Try parsing as string
+      const parsed = dayjs(dateStr);
+      return parsed.isValid() ? parsed.toDate() : null;
+    }
+    
+    function determinePriority(priorityValue) {
+      const val = parseInt(priorityValue) || 1;
+      if (val === 1) return 'Baja';
+      if (val === 2) return 'Media';
+      return 'Alta';
+    }
+    
+    // ============================================
+    // TABS MANAGEMENT
+    // ============================================
+    function addProject(projectData) {
+      projects.push(projectData);
+      
+      // Show tabs system and dashboard
+      document.getElementById('uploadSection').classList.add('hidden');
+      document.getElementById('tabsSystem').classList.remove('hidden');
+      document.getElementById('dashboardContent').classList.remove('hidden');
+      
+      // If this is the first project, create Dashboard Global tab
+      if (projects.length === 1) {
+        createDashboardGlobalTab();
+      }
+      
+      // Create tab for this project
+      createTab(projectData);
+      
+      // Create tab content for this project
+      createTabContent(projectData);
+      
+      // Update Dashboard Global with all projects
+      updateDashboardGlobal();
+      
+      // Activate Dashboard Global tab
+      switchTab('dashboard-global');
+    }
+    
+    function createDashboardGlobalTab() {
+      const tabsHeaderElement = document.getElementById('tabsHeader');
+      const actionsDiv = tabsHeaderElement.querySelector('.tabs-actions');
+      
+      const tabButton = document.createElement('button');
+      tabButton.className = 'tab-button active';
+      tabButton.dataset.projectId = 'dashboard-global';
+      tabButton.innerHTML = `📊 Dashboard Global`;
+      tabButton.onclick = () => switchTab('dashboard-global');
+      
+      // Insert as first tab
+      tabsHeaderElement.insertBefore(tabButton, actionsDiv);
+      
+      // Create Dashboard Global content
+      const dashboardContent = document.getElementById('dashboardContent');
+      const tabContent = document.createElement('div');
+      tabContent.className = 'tab-content active';
+      tabContent.id = 'project-dashboard-global';
+      tabContent.innerHTML = getDashboardGlobalHTML();
+      
+      dashboardContent.appendChild(tabContent);
+    }
+    
+    function getDashboardGlobalHTML() {
+      return `
+        <!-- HERO SECTION -->
+        <section class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+          <div style="text-align: center; padding: 2rem 0;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              Dashboard Global
+            </h1>
+            <p style="font-size: 1.125rem; opacity: 0.95; font-weight: 300;">
+              Vista consolidada de todos tus proyectos
+            </p>
+          </div>
+          
+          <div class="dashboard-grid" style="margin-top: 2rem;">
+            <div class="kpi-card" style="background: white; color: var(--color-text-primary);">
+              <div class="kpi-label" style="color: var(--color-text-secondary);">📁 Total Proyectos</div>
+              <div class="kpi-value" id="global-total-projects" style="color: #667eea;">0</div>
+              <div class="kpi-subtitle">activos en seguimiento</div>
+            </div>
+            
+            <div class="kpi-card" style="background: white; color: var(--color-text-primary);">
+              <div class="kpi-label" style="color: var(--color-text-secondary);">📋 Total Tareas</div>
+              <div class="kpi-value" id="global-total-tasks" style="color: #764ba2;">0</div>
+              <div class="kpi-subtitle">en todos los proyectos</div>
+            </div>
+            
+            <div class="kpi-card" style="background: white; color: var(--color-text-primary);">
+              <div class="kpi-label" style="color: var(--color-text-secondary);">📊 Progreso Global</div>
+              <div class="kpi-value" id="global-average-progress" style="color: #10b981;">0%</div>
+              <div class="progress-bar" style="margin-top: 0.75rem;">
+                <div class="progress-fill" id="global-progress-bar" style="width: 0%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+              </div>
+            </div>
+            
+            <div class="kpi-card" style="background: white; color: var(--color-text-primary);">
+              <div class="kpi-label" style="color: var(--color-text-secondary);">✅ Completadas</div>
+              <div class="kpi-value" id="global-completed-tasks" style="color: #10b981;">0</div>
+              <div class="kpi-subtitle" id="global-completed-percentage">0% del total</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STATUS BREAKDOWN -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📈</span>
+              Estado Global de Tareas
+            </h2>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 1.5rem; border-radius: var(--radius-lg); border-left: 4px solid #10b981;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">✅</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: #065f46; text-transform: uppercase; letter-spacing: 0.05em;">Completadas</span>
+              </div>
+              <div style="font-size: 2rem; font-weight: 700; color: #065f46;" id="status-completed-count">0</div>
+              <div style="font-size: 0.875rem; color: #047857; margin-top: 0.25rem;" id="status-completed-percent">0%</div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 1.5rem; border-radius: var(--radius-lg); border-left: 4px solid #3b82f6;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">🔄</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.05em;">En Progreso</span>
+              </div>
+              <div style="font-size: 2rem; font-weight: 700; color: #1e3a8a;" id="status-inprogress-count">0</div>
+              <div style="font-size: 0.875rem; color: #1e40af; margin-top: 0.25rem;" id="status-inprogress-percent">0%</div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); padding: 1.5rem; border-radius: var(--radius-lg); border-left: 4px solid #6b7280;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">⏸️</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">No Iniciadas</span>
+              </div>
+              <div style="font-size: 2rem; font-weight: 700; color: #374151;" id="status-notstarted-count">0</div>
+              <div style="font-size: 0.875rem; color: #4b5563; margin-top: 0.25rem;" id="status-notstarted-percent">0%</div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 1.5rem; border-radius: var(--radius-lg); border-left: 4px solid #ef4444;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">⚠️</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: #7f1d1d; text-transform: uppercase; letter-spacing: 0.05em;">Atrasadas</span>
+              </div>
+              <div style="font-size: 2rem; font-weight: 700; color: #7f1d1d;" id="status-delayed-count">0</div>
+              <div style="font-size: 0.875rem; color: #991b1b; margin-top: 0.25rem;" id="status-delayed-percent">0%</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROJECTS OVERVIEW -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">🎯</span>
+              Rendimiento por Proyecto
+            </h2>
+          </div>
+          
+          <div id="projects-performance-list"></div>
+        </section>
+
+        <!-- CHARTS GRID -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📊</span>
+              Análisis Comparativo
+            </h2>
+          </div>
+          
+          <div class="charts-grid">
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">Progreso por Proyecto</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="global-progress-chart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">Distribución de Tareas</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="global-tasks-chart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">Estados Globales</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="global-status-chart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">Prioridades</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="global-priority-chart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TOP PRIORITY TASKS -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">🔥</span>
+              Tareas que Requieren Atención
+            </h2>
+            <span style="font-size: 0.875rem; color: var(--color-text-secondary);">Top 20 tareas por criticidad</span>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Proyecto</th>
+                  <th>Tarea</th>
+                  <th>Progreso</th>
+                  <th>Estado</th>
+                  <th>Prioridad</th>
+                  <th>Fecha Límite</th>
+                  <th>Responsable</th>
+                </tr>
+              </thead>
+              <tbody id="global-top-tasks-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- PROJECTS SUMMARY TABLE -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📂</span>
+              Resumen Detallado de Proyectos
+            </h2>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Proyecto</th>
+                  <th>Cliente</th>
+                  <th>Total Tareas</th>
+                  <th>Completadas</th>
+                  <th>En Progreso</th>
+                  <th>Atrasadas</th>
+                  <th>Progreso</th>
+                  <th>Duración</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="global-projects-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    }
+    
+    function createTab(project) {
+      const tabsHeaderElement = document.getElementById('tabsHeader');
+      const actionsDiv = tabsHeaderElement.querySelector('.tabs-actions');
+      
+      const tabButton = document.createElement('button');
+      tabButton.className = 'tab-button';
+      tabButton.dataset.projectId = project.id;
+      tabButton.innerHTML = `
+        📄 ${truncateText(project.fileName, 20)}
+        <span class="tab-close" onclick="event.stopPropagation(); removeProject(${project.id})">✕</span>
+      `;
+      tabButton.onclick = () => switchTab(project.id);
+      
+      // Insert before actions div
+      tabsHeaderElement.insertBefore(tabButton, actionsDiv);
+    }
+    
+    function createTabContent(project) {
+      const dashboardContent = document.getElementById('dashboardContent');
+      
+      const tabContent = document.createElement('div');
+      tabContent.className = 'tab-content';
+      tabContent.id = `project-${project.id}`;
+      tabContent.innerHTML = getProjectHTML(project.id);
+      
+      dashboardContent.appendChild(tabContent);
+    }
+    
+    function getProjectHTML(projectId) {
+      return `
+        <!-- PROJECT INFO -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📋</span>
+              Información del Proyecto
+            </h2>
+          </div>
+          
+          <div class="dashboard-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Cliente</div>
+              <div class="kpi-value" id="clientName-${projectId}" style="font-size: 1.5rem;">-</div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-label">Proyecto</div>
+              <div class="kpi-value" id="projectName-${projectId}" style="font-size: 1.25rem;">-</div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-label">Fecha Inicio</div>
+              <div class="kpi-value" id="startDate-${projectId}" style="font-size: 1.5rem;">-</div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-label">Fecha Fin</div>
+              <div class="kpi-value" id="endDate-${projectId}" style="font-size: 1.5rem;">-</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- KPIs -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📊</span>
+              Indicadores Clave
+            </h2>
+          </div>
+          
+          <div class="dashboard-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Progreso del Proyecto</div>
+              <div class="kpi-value" id="overallProgress-${projectId}">0%</div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressBar-${projectId}" style="width: 0%"></div>
+              </div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-label">Total de Tareas</div>
+              <div class="kpi-value" id="totalTasks-${projectId}">0</div>
+              <div class="kpi-subtitle">tareas en el proyecto</div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-label">Tareas Completadas</div>
+              <div class="kpi-value" id="completedTasks-${projectId}">0</div>
+              <div class="kpi-subtitle" id="completedPercentage-${projectId}">0% del total</div>
+            </div>
+            
+            <div class="kpi-card">
+              <div class="kpi-label">Tareas Atrasadas</div>
+              <div class="kpi-value" id="delayedTasks-${projectId}">0</div>
+              <div class="kpi-subtitle">requieren atención</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CHARTS -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📈</span>
+              Análisis Visual
+            </h2>
+          </div>
+          
+          <div class="charts-grid">
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">% Estado de Tareas</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="statusChart-${projectId}"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">% Prioridad de Tareas</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="priorityChart-${projectId}"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">Presupuesto</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="budgetChart-${projectId}"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="chart-header">
+                <h3 class="chart-title">Elementos Pendientes</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="pendingChart-${projectId}"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- GANTT CHART -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📅</span>
+              Diagrama de Gantt
+            </h2>
+          </div>
+          
+          <div class="gantt-container" id="ganttContainer-${projectId}"></div>
+        </section>
+
+        <!-- TASKS TABLE -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">📝</span>
+              Tabla de Tareas
+            </h2>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre de Tarea</th>
+                  <th>Fecha Inicio</th>
+                  <th>Fecha Fin</th>
+                  <th>Duración (días)</th>
+                  <th>Progreso</th>
+                  <th>Estado</th>
+                  <th>Prioridad</th>
+                  <th>Asignado a</th>
+                </tr>
+              </thead>
+              <tbody id="tasksTableBody-${projectId}"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- DELAYED TASKS -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-icon">⚠️</span>
+              Tareas Atrasadas
+            </h2>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Fecha Inicio</th>
+                  <th>Fecha Fin</th>
+                  <th>Duración</th>
+                  <th>Progreso</th>
+                  <th>Días de Retraso</th>
+                </tr>
+              </thead>
+              <tbody id="delayedTasksTableBody-${projectId}"></tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    }
+    
+    function switchTab(projectId) {
+      // Update active project
+      activeProjectId = projectId;
+      
+      // Update tab buttons
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.projectId == projectId);
+      });
+      
+      // Update tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `project-${projectId}`);
+      });
+      
+      // Render the appropriate content
+      if (projectId === 'dashboard-global') {
+        updateDashboardGlobal();
+      } else {
+        const project = projects.find(p => p.id == projectId);
+        if (project) {
+          renderProject(project);
+        }
+      }
+    }
+    
+    function updateDashboardGlobal() {
+      if (projects.length === 0) return;
+      
+      // Calculate global metrics
+      const totalProjects = projects.length;
+      const totalTasks = projects.reduce((sum, p) => sum + p.tasks.length, 0);
+      const totalProgress = projects.reduce((sum, p) => {
+        const projectProgress = p.tasks.reduce((s, t) => s + t.progress, 0) / (p.tasks.length || 1);
+        return sum + projectProgress;
+      }, 0);
+      const averageProgress = totalProgress / totalProjects;
+      const totalCompleted = projects.reduce((sum, p) => sum + p.tasks.filter(t => t.progress === 100).length, 0);
+      
+      // Calculate status breakdown
+      let allCompleted = 0;
+      let allInProgress = 0;
+      let allNotStarted = 0;
+      let allDelayed = 0;
+      
+      projects.forEach(p => {
+        allCompleted += p.tasks.filter(t => t.progress === 100).length;
+        allInProgress += p.tasks.filter(t => t.progress > 0 && t.progress < 100 && !isTaskDelayed(t)).length;
+        allNotStarted += p.tasks.filter(t => t.progress === 0 && !isTaskDelayed(t)).length;
+        allDelayed += p.tasks.filter(t => isTaskDelayed(t)).length;
+      });
+      
+      // Update Hero KPIs
+      document.getElementById('global-total-projects').textContent = totalProjects;
+      document.getElementById('global-total-tasks').textContent = totalTasks;
+      document.getElementById('global-average-progress').textContent = `${Math.round(averageProgress)}%`;
+      document.getElementById('global-progress-bar').style.width = `${averageProgress}%`;
+      document.getElementById('global-completed-tasks').textContent = totalCompleted;
+      document.getElementById('global-completed-percentage').textContent = 
+        `${Math.round((totalCompleted / totalTasks) * 100)}% del total`;
+      
+      // Update Status Breakdown
+      document.getElementById('status-completed-count').textContent = allCompleted;
+      document.getElementById('status-completed-percent').textContent = `${Math.round((allCompleted / totalTasks) * 100)}%`;
+      document.getElementById('status-inprogress-count').textContent = allInProgress;
+      document.getElementById('status-inprogress-percent').textContent = `${Math.round((allInProgress / totalTasks) * 100)}%`;
+      document.getElementById('status-notstarted-count').textContent = allNotStarted;
+      document.getElementById('status-notstarted-percent').textContent = `${Math.round((allNotStarted / totalTasks) * 100)}%`;
+      document.getElementById('status-delayed-count').textContent = allDelayed;
+      document.getElementById('status-delayed-percent').textContent = `${Math.round((allDelayed / totalTasks) * 100)}%`;
+      
+      // Render visualizations
+      renderProjectsPerformanceList();
+      renderGlobalCharts();
+      renderGlobalTopTasks();
+      renderGlobalProjectsTable();
+    }
+    
+    function renderProjectsPerformanceList() {
+      const container = document.getElementById('projects-performance-list');
+      
+      let html = '';
+      projects.forEach((project, index) => {
+        const totalTasks = project.tasks.length;
+        const completedTasks = project.tasks.filter(t => t.progress === 100).length;
+        const inProgressTasks = project.tasks.filter(t => t.progress > 0 && t.progress < 100).length;
+        const delayedTasks = project.tasks.filter(t => isTaskDelayed(t)).length;
+        const avgProgress = project.tasks.reduce((sum, t) => sum + t.progress, 0) / (totalTasks || 1);
+        
+        // Calculate health score (0-100)
+        const healthScore = calculateProjectHealth(project);
+        const healthColor = healthScore >= 70 ? '#10b981' : healthScore >= 40 ? '#f59e0b' : '#ef4444';
+        const healthLabel = healthScore >= 70 ? 'Saludable' : healthScore >= 40 ? 'En Riesgo' : 'Crítico';
+        
+        html += `
+          <div style="background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1rem; transition: all 0.3s ease; cursor: pointer;" 
+               onmouseover="this.style.boxShadow='var(--shadow-lg)'; this.style.transform='translateY(-2px)'" 
+               onmouseout="this.style.boxShadow=''; this.style.transform=''"
+               onclick="switchTab(${project.id})">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+              <div style="flex: 1;">
+                <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-primary);">
+                  ${escapeHtml(truncateText(project.projectName, 50))}
+                </h3>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary);">
+                  ${escapeHtml(project.client)} • ${totalTasks} tareas
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: ${healthColor}20; color: ${healthColor}; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 600;">
+                  <span style="font-size: 1.25rem;">${healthScore >= 70 ? '🟢' : healthScore >= 40 ? '🟡' : '🔴'}</span>
+                  ${healthLabel}
+                </div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Progreso</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${Math.round(avgProgress)}%</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Completadas</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">${completedTasks}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">En Curso</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${inProgressTasks}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Atrasadas</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">${delayedTasks}</div>
+              </div>
+            </div>
+            
+            <div class="progress-bar" style="height: 12px; background: var(--color-bg-subtle);">
+              <div style="height: 100%; background: linear-gradient(90deg, ${healthColor}, ${adjustColor(healthColor, 20)}); border-radius: 9999px; width: ${avgProgress}%; transition: width 1s ease;"></div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    function calculateProjectHealth(project) {
+      const totalTasks = project.tasks.length;
+      if (totalTasks === 0) return 100;
+      
+      const completedTasks = project.tasks.filter(t => t.progress === 100).length;
+      const delayedTasks = project.tasks.filter(t => isTaskDelayed(t)).length;
+      const avgProgress = project.tasks.reduce((sum, t) => sum + t.progress, 0) / totalTasks;
+      
+      // Health formula: 
+      // - Progress weight: 50%
+      // - Completion rate: 30%
+      // - Penalty for delayed tasks: -20% per delayed task (capped at -50%)
+      const progressScore = avgProgress * 0.5;
+      const completionScore = (completedTasks / totalTasks) * 30;
+      const delayedPenalty = Math.min((delayedTasks / totalTasks) * 50, 50);
+      
+      return Math.max(0, Math.min(100, progressScore + completionScore - delayedPenalty));
+    }
+    
+    function adjustColor(hex, percent) {
+      // Simple color adjustment for gradient effect
+      const num = parseInt(hex.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+        (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
+        .toString(16).slice(1);
+    }
+    
+    function renderGlobalCharts() {
+      renderGlobalProgressChart();
+      renderGlobalTasksChart();
+      renderGlobalStatusChart();
+      renderGlobalPriorityChart();
+    }
+    
+    let globalCharts = {
+      progress: null,
+      tasks: null,
+      status: null,
+      priority: null
+    };
+    
+    function renderGlobalProgressChart() {
+      if (globalCharts.progress) {
+        globalCharts.progress.destroy();
+      }
+      
+      const ctx = document.getElementById('global-progress-chart');
+      if (!ctx) return;
+      
+      const labels = projects.map(p => truncateText(p.projectName, 20));
+      const data = projects.map(p => {
+        const avgProgress = p.tasks.reduce((sum, t) => sum + t.progress, 0) / (p.tasks.length || 1);
+        return Math.round(avgProgress);
+      });
+      
+      globalCharts.progress = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Progreso (%)',
+            data: data,
+            backgroundColor: '#3b82f6',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  return `Progreso: ${context.parsed.y}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                callback: function(value) {
+                  return value + '%';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderGlobalTasksChart() {
+      if (globalCharts.tasks) {
+        globalCharts.tasks.destroy();
+      }
+      
+      const ctx = document.getElementById('global-tasks-chart');
+      if (!ctx) return;
+      
+      const labels = projects.map(p => truncateText(p.projectName, 20));
+      const completed = projects.map(p => p.tasks.filter(t => t.progress === 100).length);
+      const pending = projects.map(p => p.tasks.filter(t => t.progress < 100).length);
+      
+      globalCharts.tasks = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Completadas',
+              data: completed,
+              backgroundColor: '#10b981',
+              borderRadius: 8
+            },
+            {
+              label: 'Pendientes',
+              data: pending,
+              backgroundColor: '#f59e0b',
+              borderRadius: 8
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+    
+    function renderGlobalStatusChart() {
+      if (globalCharts.status) {
+        globalCharts.status.destroy();
+      }
+      
+      const ctx = document.getElementById('global-status-chart');
+      if (!ctx) return;
+      
+      let allCompleted = 0;
+      let allInProgress = 0;
+      let allNotStarted = 0;
+      
+      projects.forEach(p => {
+        allCompleted += p.tasks.filter(t => t.progress === 100).length;
+        allInProgress += p.tasks.filter(t => t.progress > 0 && t.progress < 100).length;
+        allNotStarted += p.tasks.filter(t => t.progress === 0).length;
+      });
+      
+      globalCharts.status = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Completadas', 'En progreso', 'No iniciadas'],
+          datasets: [{
+            data: [allCompleted, allInProgress, allNotStarted],
+            backgroundColor: ['#10b981', '#3b82f6', '#94a3b8'],
+            borderWidth: 3,
+            borderColor: '#ffffff',
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderGlobalPriorityChart() {
+      if (globalCharts.priority) {
+        globalCharts.priority.destroy();
+      }
+      
+      const ctx = document.getElementById('global-priority-chart');
+      if (!ctx) return;
+      
+      let allHigh = 0;
+      let allMedium = 0;
+      let allLow = 0;
+      
+      projects.forEach(p => {
+        allHigh += p.tasks.filter(t => t.priority === 'Alta').length;
+        allMedium += p.tasks.filter(t => t.priority === 'Media').length;
+        allLow += p.tasks.filter(t => t.priority === 'Baja').length;
+      });
+      
+      globalCharts.priority = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Alta', 'Media', 'Baja'],
+          datasets: [{
+            data: [allHigh, allMedium, allLow],
+            backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+            borderWidth: 3,
+            borderColor: '#ffffff',
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderGlobalTopTasks() {
+      const tbody = document.getElementById('global-top-tasks-body');
+      
+      // Get all tasks from all projects
+      let allTasks = [];
+      projects.forEach(p => {
+        p.tasks.forEach(t => {
+          allTasks.push({
+            project: p,
+            task: t
+          });
+        });
+      });
+      
+      // Sort by: delayed first, then by low progress, then by priority
+      allTasks.sort((a, b) => {
+        const aDelayed = isTaskDelayed(a.task) ? 1 : 0;
+        const bDelayed = isTaskDelayed(b.task) ? 1 : 0;
+        if (aDelayed !== bDelayed) return bDelayed - aDelayed;
+        
+        if (a.task.progress !== b.task.progress) return a.task.progress - b.task.progress;
+        
+        const priorityOrder = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
+        return (priorityOrder[b.task.priority] || 0) - (priorityOrder[a.task.priority] || 0);
+      });
+      
+      // Show top 20 tasks
+      const topTasks = allTasks.slice(0, 20);
+      
+      let html = '';
+      topTasks.forEach(item => {
+        const status = getTaskStatus(item.task);
+        html += `
+          <tr>
+            <td><strong>${escapeHtml(truncateText(item.project.projectName, 25))}</strong></td>
+            <td>${escapeHtml(item.task.name)}</td>
+            <td>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${item.task.progress}%"></div>
+              </div>
+              <span style="font-size: 0.75rem; color: var(--color-text-secondary);">${item.task.progress}%</span>
+            </td>
+            <td><span class="status-badge ${status.class}">${status.text}</span></td>
+            <td><span class="priority-badge priority-${item.task.priority.toLowerCase()}">${item.task.priority}</span></td>
+            <td>${formatDate(item.task.endDate)}</td>
+            <td>${escapeHtml(item.task.assignedTo)}</td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html || '<tr><td colspan="7" class="text-center">No hay tareas para mostrar</td></tr>';
+    }
+    
+    function renderGlobalProjectsTable() {
+      const tbody = document.getElementById('global-projects-table-body');
+      
+      let html = '';
+      projects.forEach(p => {
+        const totalTasks = p.tasks.length;
+        const completedTasks = p.tasks.filter(t => t.progress === 100).length;
+        const inProgressTasks = p.tasks.filter(t => t.progress > 0 && t.progress < 100 && !isTaskDelayed(t)).length;
+        const delayedTasks = p.tasks.filter(t => isTaskDelayed(t)).length;
+        const avgProgress = p.tasks.reduce((sum, t) => sum + t.progress, 0) / (totalTasks || 1);
+        
+        // Calculate duration
+        const duration = p.startDate && p.endDate ? 
+          Math.ceil((p.endDate - p.startDate) / (1000 * 60 * 60 * 24)) : 0;
+        
+        html += `
+          <tr>
+            <td><strong>${escapeHtml(truncateText(p.projectName, 40))}</strong></td>
+            <td>${escapeHtml(p.client)}</td>
+            <td style="text-align: center;">${totalTasks}</td>
+            <td style="text-align: center;">
+              <span style="color: #10b981; font-weight: 600;">${completedTasks}</span>
+            </td>
+            <td style="text-align: center;">
+              <span style="color: #3b82f6; font-weight: 600;">${inProgressTasks}</span>
+            </td>
+            <td style="text-align: center;">
+              <span style="color: #ef4444; font-weight: 600;">${delayedTasks}</span>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="progress-bar" style="flex: 1;">
+                  <div class="progress-fill" style="width: ${avgProgress}%"></div>
+                </div>
+                <span style="font-size: 0.875rem; font-weight: 600; min-width: 40px;">${Math.round(avgProgress)}%</span>
+              </div>
+            </td>
+            <td style="white-space: nowrap;">
+              ${formatDate(p.startDate)} → ${formatDate(p.endDate)}
+              ${duration > 0 ? `<br><span style="font-size: 0.75rem; color: var(--color-text-tertiary);">${duration} días</span>` : ''}
+            </td>
+            <td>
+              <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="switchTab(${p.id})">
+                👁️ Ver
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html;
+    }
+    
+    function removeProject(projectId) {
+      if (!confirm('¿Estás seguro de que quieres eliminar este proyecto?')) {
+        return;
+      }
+      
+      // Find project and destroy its charts
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        destroyProjectCharts(project);
+      }
+      
+      // Remove from array
+      projects = projects.filter(p => p.id !== projectId);
+      
+      // Remove tab button
+      const tabButton = document.querySelector(`[data-project-id="${projectId}"]`);
+      if (tabButton) {
+        tabButton.remove();
+      }
+      
+      // Remove tab content
+      const tabContent = document.getElementById(`project-${projectId}`);
+      if (tabContent) {
+        tabContent.remove();
+      }
+      
+      // If no projects left, remove Dashboard Global and show upload section
+      if (projects.length === 0) {
+        // Remove Dashboard Global tab
+        const dashboardTab = document.querySelector('[data-project-id="dashboard-global"]');
+        if (dashboardTab) dashboardTab.remove();
+        
+        const dashboardContent = document.getElementById('project-dashboard-global');
+        if (dashboardContent) dashboardContent.remove();
+        
+        // Destroy global charts
+        Object.keys(globalCharts).forEach(key => {
+          if (globalCharts[key]) {
+            globalCharts[key].destroy();
+            globalCharts[key] = null;
+          }
+        });
+        
+        // Show upload section
+        document.getElementById('uploadSection').classList.remove('hidden');
+        document.getElementById('tabsSystem').classList.add('hidden');
+        document.getElementById('dashboardContent').classList.add('hidden');
+        activeProjectId = null;
+      } else {
+        // Update Dashboard Global and switch to it
+        updateDashboardGlobal();
+        switchTab('dashboard-global');
+      }
+    }
+    
+    function destroyProjectCharts(project) {
+      Object.keys(project.charts).forEach(chartKey => {
+        if (project.charts[chartKey]) {
+          project.charts[chartKey].destroy();
+          project.charts[chartKey] = null;
+        }
+      });
+    }
+    
+    function truncateText(text, maxLength) {
+      if (text.length <= maxLength) return text;
+      return text.substring(0, maxLength) + '...';
+    }
+    
+    // ============================================
+    // RENDER PROJECT
+    // ============================================
+    function renderProject(project) {
+      renderProjectInfo(project);
+      renderKPIs(project);
+      renderCharts(project);
+      renderGanttChart(project);
+      renderTasksTable(project);
+      renderDelayedTasksTable(project);
+    }
+    
+    // ============================================
+    // PROJECT INFO
+    // ============================================
+    function renderProjectInfo(project) {
+      document.getElementById(`clientName-${project.id}`).textContent = project.client;
+      document.getElementById(`projectName-${project.id}`).textContent = project.projectName;
+      document.getElementById(`startDate-${project.id}`).textContent = formatDate(project.startDate);
+      document.getElementById(`endDate-${project.id}`).textContent = formatDate(project.endDate);
+    }
+    
+    // ============================================
+    // KPIs
+    // ============================================
+    function renderKPIs(project) {
+      const tasks = project.tasks;
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.progress === 100).length;
+      const delayedTasks = tasks.filter(t => isTaskDelayed(t)).length;
+      const averageProgress = tasks.reduce((sum, t) => sum + t.progress, 0) / totalTasks;
+      
+      document.getElementById(`totalTasks-${project.id}`).textContent = totalTasks;
+      document.getElementById(`completedTasks-${project.id}`).textContent = completedTasks;
+      document.getElementById(`completedPercentage-${project.id}`).textContent = 
+        `${Math.round((completedTasks / totalTasks) * 100)}% del total`;
+      document.getElementById(`delayedTasks-${project.id}`).textContent = delayedTasks;
+      document.getElementById(`overallProgress-${project.id}`).textContent = `${Math.round(averageProgress)}%`;
+      document.getElementById(`progressBar-${project.id}`).style.width = `${averageProgress}%`;
+    }
+    
+    function isTaskDelayed(task) {
+      const today = new Date();
+      return task.progress < 100 && task.endDate < today;
+    }
+    
+    // ============================================
+    // CHARTS
+    // ============================================
+    function renderCharts(project) {
+      renderStatusChart(project);
+      renderPriorityChart(project);
+      renderBudgetChart(project);
+      renderPendingChart(project);
+    }
+    
+    function destroyChart(project, chartKey) {
+      if (project.charts[chartKey]) {
+        project.charts[chartKey].destroy();
+        project.charts[chartKey] = null;
+      }
+    }
+    
+    function renderStatusChart(project) {
+      const tasks = project.tasks;
+      const completed = tasks.filter(t => t.progress === 100).length;
+      const inProgress = tasks.filter(t => t.progress > 0 && t.progress < 100).length;
+      const notStarted = tasks.filter(t => t.progress === 0).length;
+      
+      destroyChart(project, 'status');
+      
+      const ctx = document.getElementById(`statusChart-${project.id}`);
+      if (!ctx) return;
+      
+      project.charts.status = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Completadas', 'En progreso', 'No iniciadas'],
+          datasets: [{
+            data: [completed, inProgress, notStarted],
+            backgroundColor: [
+              '#10b981', // Verde para completadas
+              '#3b82f6', // Azul para en progreso
+              '#94a3b8'  // Gris para no iniciadas
+            ],
+            borderWidth: 3,
+            borderColor: '#ffffff',
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: {
+                size: 14,
+                family: "'Outfit', sans-serif"
+              },
+              bodyFont: {
+                size: 13,
+                family: "'Outfit', sans-serif"
+              },
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderPriorityChart(project) {
+      const tasks = project.tasks;
+      const high = tasks.filter(t => t.priority === 'Alta').length;
+      const medium = tasks.filter(t => t.priority === 'Media').length;
+      const low = tasks.filter(t => t.priority === 'Baja').length;
+      
+      destroyChart(project, 'priority');
+      
+      const ctx = document.getElementById(`priorityChart-${project.id}`);
+      if (!ctx) return;
+      
+      project.charts.priority = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Alta', 'Media', 'Baja'],
+          datasets: [{
+            data: [high, medium, low],
+            backgroundColor: [
+              '#ef4444', // Rojo para alta
+              '#f59e0b', // Amarillo para media
+              '#10b981'  // Verde para baja
+            ],
+            borderWidth: 3,
+            borderColor: '#ffffff',
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: {
+                size: 14,
+                family: "'Outfit', sans-serif"
+              },
+              bodyFont: {
+                size: 13,
+                family: "'Outfit', sans-serif"
+              },
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderBudgetChart(project) {
+      destroyChart(project, 'budget');
+      
+      const ctx = document.getElementById(`budgetChart-${project.id}`);
+      if (!ctx) return;
+      
+      const realProgress = project.tasks.reduce((sum, t) => sum + t.progress, 0);
+      const plannedProgress = project.tasks.length * 100;
+      const percentageReal = (realProgress / plannedProgress * 100).toFixed(1);
+      
+      project.charts.budget = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Presupuesto'],
+          datasets: [
+            {
+              label: 'Real',
+              data: [percentageReal],
+              backgroundColor: '#10b981',
+              borderRadius: 8,
+              barThickness: 60
+            },
+            {
+              label: 'Planificado',
+              data: [100],
+              backgroundColor: '#3b82f6',
+              borderRadius: 8,
+              barThickness: 60
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: {
+                size: 14,
+                family: "'Outfit', sans-serif"
+              },
+              bodyFont: {
+                size: 13,
+                family: "'Outfit', sans-serif"
+              },
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                callback: function(value) {
+                  return value + '%';
+                },
+                font: {
+                  size: 11,
+                  family: "'Outfit', sans-serif"
+                }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderPendingChart(project) {
+      const tasks = project.tasks;
+      
+      // Calcular elementos pendientes de forma más precisa
+      const decisions = tasks.filter(t => 
+        (t.notes && (t.notes.toLowerCase().includes('decisión') || 
+                     t.notes.toLowerCase().includes('pendiente') ||
+                     t.notes.toLowerCase().includes('revisar'))) ||
+        t.progress === 0
+      ).length;
+      
+      const actions = tasks.filter(t => 
+        t.progress > 0 && t.progress < 100
+      ).length;
+      
+      const changes = tasks.filter(t => 
+        (t.notes && (t.notes.toLowerCase().includes('cambio') || 
+                     t.notes.toLowerCase().includes('actualiz') ||
+                     t.notes.toLowerCase().includes('modific'))) ||
+        isTaskDelayed(t)
+      ).length;
+      
+      destroyChart(project, 'pending');
+      
+      const ctx = document.getElementById(`pendingChart-${project.id}`);
+      if (!ctx) return;
+      
+      project.charts.pending = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Decisiones', 'Acciones', 'Solicitudes'],
+          datasets: [{
+            data: [decisions, actions, changes],
+            backgroundColor: [
+              '#f59e0b', // Amarillo para decisiones
+              '#3b82f6', // Azul para acciones
+              '#10b981'  // Verde para solicitudes
+            ],
+            borderRadius: 8,
+            barThickness: 40
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1.5,
+          indexAxis: 'y',
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: {
+                size: 14,
+                family: "'Outfit', sans-serif"
+              },
+              bodyFont: {
+                size: 13,
+                family: "'Outfit', sans-serif"
+              },
+              callbacks: {
+                label: function(context) {
+                  return `${context.label}: ${context.parsed.x} elemento(s)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                font: {
+                  size: 11,
+                  family: "'Outfit', sans-serif"
+                }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            y: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 12,
+                  family: "'Outfit', sans-serif"
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // ============================================
+    // GANTT CHART
+    // ============================================
+    function renderGanttChart(project) {
+      const container = document.getElementById(`ganttContainer-${project.id}`);
+      const tasks = project.tasks;
+      
+      if (tasks.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary); padding: 2rem;">No hay tareas para mostrar en el diagrama de Gantt.</p>';
+        return;
+      }
+      
+      // Calculate timeline
+      const allDates = tasks.flatMap(t => [t.startDate, t.endDate]);
+      const minDate = new Date(Math.min(...allDates));
+      const maxDate = new Date(Math.max(...allDates));
+      
+      const months = generateMonthRange(minDate, maxDate);
+      const totalMonths = months.length;
+      const timelineWidth = totalMonths * 120; // 120px por mes
+      
+      // Create wrapper with scroll
+      let html = '<div class="gantt-wrapper">';
+      
+      // Create header
+      html += '<div class="gantt-header">';
+      html += '<div class="gantt-info">Tarea</div>';
+      html += '<div class="gantt-timeline">';
+      months.forEach((month, index) => {
+        html += `<div class="gantt-month">${month}</div>`;
+      });
+      html += '</div></div>';
+      
+      // Create rows
+      html += '<div class="gantt-body">';
+      tasks.forEach(task => {
+        html += '<div class="gantt-row">';
+        html += `<div class="gantt-task-name" title="${escapeHtml(task.name)}">${escapeHtml(task.name)}</div>`;
+        
+        // Calculate bar width based on fixed column width
+        const barData = calculateBarPosition(task, minDate, maxDate);
+        const barColor = getStatusColor(task);
+        
+        html += `<div class="gantt-bars" style="width: ${timelineWidth}px;">`;
+        html += `<div class="gantt-bar" style="left: ${barData.left}%; width: ${barData.width}%; background: ${barColor};" title="${escapeHtml(task.name)} - ${task.progress}%">
+                  ${task.progress}%
+                 </div>`;
+        html += '</div></div>';
+      });
+      html += '</div>';
+      
+      html += '</div>'; // Close gantt-wrapper
+      
+      container.innerHTML = html;
+      
+      // Add scroll event listener for visual feedback
+      setTimeout(() => {
+        const ganttContainer = container.closest('.section');
+        if (ganttContainer) {
+          const scrollable = container.querySelector('.gantt-wrapper').parentElement;
+          if (scrollable && totalMonths > 6) { // Solo mostrar hint si hay más de 6 meses
+            addScrollHint(ganttContainer);
+          }
+        }
+      }, 100);
+    }
+    
+    function addScrollHint(container) {
+      // Verificar si ya existe el hint
+      if (container.querySelector('.gantt-scroll-indicator')) return;
+      
+      const indicator = document.createElement('div');
+      indicator.className = 'gantt-scroll-indicator';
+      indicator.innerHTML = '<div class="gantt-scroll-hint">← Desliza →</div>';
+      
+      const ganttContainer = container.querySelector('#ganttContainer-' + activeProjectId);
+      if (ganttContainer) {
+        ganttContainer.style.position = 'relative';
+        ganttContainer.appendChild(indicator);
+        
+        // Remover hint después de 3 segundos o al hacer scroll
+        const parent = ganttContainer.closest('.gantt-container') || ganttContainer.parentElement;
+        
+        const removeHint = () => {
+          indicator.style.opacity = '0';
+          setTimeout(() => indicator.remove(), 300);
+        };
+        
+        setTimeout(removeHint, 4000);
+        
+        if (parent) {
+          parent.addEventListener('scroll', removeHint, { once: true });
+        }
+      }
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function generateMonthRange(startDate, endDate) {
+      const months = [];
+      let current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+      
+      while (current <= end) {
+        months.push(dayjs(current).format('MMM YYYY'));
+        current.setMonth(current.getMonth() + 1);
+      }
+      
+      return months;
+    }
+    
+    function calculateBarPosition(task, minDate, maxDate) {
+      const totalDuration = maxDate - minDate;
+      const taskStart = task.startDate - minDate;
+      const taskDuration = task.endDate - task.startDate;
+      
+      return {
+        left: (taskStart / totalDuration) * 100,
+        width: (taskDuration / totalDuration) * 100
+      };
+    }
+    
+    function getStatusColor(task) {
+      if (task.progress === 100) return '#10b981';
+      if (task.progress > 0) return '#3b82f6';
+      if (isTaskDelayed(task)) return '#ef4444';
+      return '#94a3b8';
+    }
+    
+    // ============================================
+    // TASKS TABLE
+    // ============================================
+    function renderTasksTable(project) {
+      const tbody = document.getElementById(`tasksTableBody-${project.id}`);
+      const tasks = project.tasks;
+      
+      let html = '';
+      tasks.forEach(task => {
+        const status = getTaskStatus(task);
+        html += `
+          <tr>
+            <td>${task.name}</td>
+            <td>${formatDate(task.startDate)}</td>
+            <td>${formatDate(task.endDate)}</td>
+            <td>${task.duration}</td>
+            <td>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${task.progress}%"></div>
+              </div>
+              <span style="font-size: 0.75rem; color: var(--color-text-secondary);">${task.progress}%</span>
+            </td>
+            <td><span class="status-badge ${status.class}">${status.text}</span></td>
+            <td><span class="priority-badge priority-${task.priority.toLowerCase()}">${task.priority}</span></td>
+            <td>${task.assignedTo}</td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html;
+    }
+    
+    function getTaskStatus(task) {
+      if (task.progress === 100) {
+        return { text: 'Completada', class: 'status-completed' };
+      }
+      if (isTaskDelayed(task)) {
+        return { text: 'Atrasada', class: 'status-delayed' };
+      }
+      if (task.progress > 0) {
+        return { text: 'En progreso', class: 'status-inprogress' };
+      }
+      return { text: 'No iniciada', class: 'status-notstarted' };
+    }
+    
+    // ============================================
+    // DELAYED TASKS TABLE
+    // ============================================
+    function renderDelayedTasksTable(project) {
+      const tbody = document.getElementById(`delayedTasksTableBody-${project.id}`);
+      const delayedTasks = project.tasks.filter(t => isTaskDelayed(t));
+      
+      if (delayedTasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay tareas atrasadas</td></tr>';
+        return;
+      }
+      
+      let html = '';
+      delayedTasks.forEach(task => {
+        const daysDelayed = Math.floor((new Date() - task.endDate) / (1000 * 60 * 60 * 24));
+        html += `
+          <tr>
+            <td>${task.name}</td>
+            <td>${formatDate(task.startDate)}</td>
+            <td>${formatDate(task.endDate)}</td>
+            <td>${task.duration} días</td>
+            <td>${task.progress}%</td>
+            <td><span class="status-badge status-delayed">${daysDelayed} días</span></td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html;
+    }
+    
+    // ============================================
+    // UTILITIES
+    // ============================================
+    function formatDate(date) {
+      if (!date) return '-';
+      return dayjs(date).format('DD/MM/YYYY');
+    }
+    
+    function showAlert(message, type = 'info') {
+      const container = document.getElementById('alertContainer');
+      const alertClass = `alert-${type}`;
+      
+      container.innerHTML = `
+        <div class="alert ${alertClass}">
+          <span>${message}</span>
+        </div>
+      `;
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          container.innerHTML = '';
+        }, 3000);
+      }
+    }
+    
+    // ============================================
+    // DEMO DATA
+    // ============================================
+    function loadDemoData() {
+      const demoTasks = [
+        {
+          id: '1',
+          name: 'ACETAZOLAMIDA TABLETAS',
+          startDate: new Date('2025-04-25'),
+          endDate: new Date('2028-05-01'),
+          duration: 776,
+          progress: 2,
+          priority: 'Alta',
+          assignedTo: 'Equipo Proyecto'
+        },
+        {
+          id: '2',
+          name: 'INICIO FORMAL PROYECTO',
+          startDate: new Date('2025-04-25'),
+          endDate: new Date('2025-08-13'),
+          duration: 79,
+          progress: 35,
+          priority: 'Alta',
+          assignedTo: 'Líder de Proyecto'
+        },
+        {
+          id: '3',
+          name: 'Aprobación oferta comercial',
+          startDate: new Date('2025-04-25'),
+          endDate: new Date('2025-04-25'),
+          duration: 1,
+          progress: 100,
+          priority: 'Alta',
+          assignedTo: 'Cliente'
+        },
+        {
+          id: '4',
+          name: 'Presentación equipo transferencias',
+          startDate: new Date('2025-04-28'),
+          endDate: new Date('2025-04-28'),
+          duration: 1,
+          progress: 100,
+          priority: 'Media',
+          assignedTo: 'Líder de Proyecto'
+        },
+        {
+          id: '5',
+          name: 'Recepción documentación inicial',
+          startDate: new Date('2025-05-06'),
+          endDate: new Date('2025-06-20'),
+          duration: 34,
+          progress: 80,
+          priority: 'Alta',
+          assignedTo: 'Líder de Proyecto'
+        },
+        {
+          id: '6',
+          name: 'Elaboración GAP de procesos',
+          startDate: new Date('2025-06-23'),
+          endDate: new Date('2025-06-30'),
+          duration: 6,
+          progress: 50,
+          priority: 'Media',
+          assignedTo: 'Líder de Proyecto'
+        },
+        {
+          id: '7',
+          name: 'Verificación Calificación Equipos',
+          startDate: new Date('2025-07-01'),
+          endDate: new Date('2025-07-01'),
+          duration: 1,
+          progress: 50,
+          priority: 'Baja',
+          assignedTo: 'Líder de Proyecto'
+        }
+      ];
+      
+      const projectData = {
+        id: ++projectCounter,
+        fileName: 'Proyecto_Demo.xlsx',
+        tasks: demoTasks,
+        client: 'LAPROFF',
+        projectName: 'ACETAZOLAMIDA TABLETAS',
+        startDate: new Date('2025-04-25'),
+        endDate: new Date('2028-05-01'),
+        charts: {
+          status: null,
+          priority: null,
+          budget: null,
+          pending: null
+        }
+      };
+      
+      showAlert('Datos de demostración cargados exitosamente', 'success');
+      addProject(projectData);
+    }
+  </script>
+</body>
+</html>
